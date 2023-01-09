@@ -11,7 +11,7 @@ from internal.service.exception import APIExceptionHandler
 __all__ = []
 
 
-class AdminService(api_admin_pb2_grpc.AdminServicer):
+class AdminServicer(api_admin_pb2_grpc.AdminServicer):
     """service 实例, grpc服务"""
 
     __slots__ = ('_accountUseCase', '_companyUseCase')
@@ -96,5 +96,5 @@ class AdminService(api_admin_pb2_grpc.AdminServicer):
 def new_service(
         account_use_case: AccountUseCase,
         company_use_case: CompanyUseCase,
-) -> AdminService:
-    return AdminService(account_use_case, company_use_case)
+) -> AdminServicer:
+    return AdminServicer(account_use_case, company_use_case)

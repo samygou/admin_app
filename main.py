@@ -15,7 +15,7 @@ from internal.modules.logx import Logger
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
 
 
-def _register_server(svc_ep: str):
+def _register_server(svc_port: int):
     # -----------repo------------
     account_use_case = new_account_use_case(new_account_repo())
     company_use_case = new_company_use_case(new_company_repo())
@@ -23,16 +23,24 @@ def _register_server(svc_ep: str):
     # -----------biz------------
     api_svc = new_service(account_use_case, company_use_case)
 
+    with open('./secret-key/server.key', 'rb') as f:
+        private_key = f.read()
+
+    with open('./secret-key/server.crt', 'rb') as f:
+        certificate = f.read()
+
     rpc = new_grpc_server(
-        svc_ep,
+        svc_port,
         api_svc,
         workers=10,
-        options=[('grpc.max_receive_message_length', 30 * 1024 * 1024)]
+        options=[('grpc.max_receive_message_length', 30 * 1024 * 1024)],
+        private_key=private_key,
+        certificate=certificate
     )
 
     rpc.serve()
 
-    logging.info(f'grpc server register successful, endpoint: {svc_ep}')
+    logging.info(f'grpc server register successful, port: {svc_port}')
 
     try:
         while True:
@@ -44,7 +52,7 @@ def _register_server(svc_ep: str):
 def main():
     """main func"""
     parse = argparse.ArgumentParser()
-    parse.add_argument('--svc_ep', type=str, default='127.0.0.1:30003')
+    parse.add_argument('--svc_port', type=int, default=30003)
     parse.add_argument('--db_ep', type=str, default='127.0.0.1:3306')
     parse.add_argument('--db_auth', type=str, default='root:123456')
     parse.add_argument('--db_name', type=str, default='admin_application_db')
@@ -66,7 +74,7 @@ def main():
     )
 
     # ============grpc server================
-    _register_server(args.svc_ep)
+    _register_server(args.svc_port)
 
 
 if __name__ == '__main__':

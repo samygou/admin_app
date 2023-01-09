@@ -14,17 +14,17 @@ class GRPCServer:
 
     def __init__(
             self,
-            svc_ep: str,
+            svc_port: int,
             api_svc: object,
             workers: int,
             options: t.Optional[t.List[t.Tuple]],
             register_func: t.Callable,
-            private_key: str = None,
-            certificate: str = None
+            private_key: t.Optional[t.AnyStr] = None,
+            certificate: t.Optional[t.AnyStr] = None
     ):
         """
 
-        :param svc_ep: endpoint
+        :param svc_port: port
         :param api_svc: api 服务
         :param workers: 工作线程数
         :param options: grpc options
@@ -32,7 +32,7 @@ class GRPCServer:
         :param private_key: 秘钥, 为空使用非安全模式
         :param certificate: 证书, 为空使用非安全模式
         """
-        self._svc_ep = svc_ep
+        self._svc_port = svc_port
         self._options = options if options else [('grpc.max_receive_message_length', 30 * 1024 * 1024)]
         self._workers = workers
         self._api_svc = api_svc
@@ -42,14 +42,22 @@ class GRPCServer:
         self._certificate = certificate
 
     def serve(self):
-        # TODO: 目前只实现非安全模式, 安全模式待实现
         self.server = grpc.server(futures.ThreadPoolExecutor(max_workers=self._workers), options=self._options)
         self._register_func(self._api_svc, self.server)
 
-        if not self._svc_ep:
+        if not self._svc_port:
             raise ErrEndpointIsNullException
 
-        self.server.add_insecure_port(self._svc_ep)
+        if not self._private_key or not self._certificate:
+            logging.info('insecure mode')
+            self.server.add_insecure_port(f'[::]:{self._svc_port}')
+        else:
+            logging.info('TSL/SSL mode')
+            server_credentials = grpc.ssl_server_credentials(
+                ((self._private_key, self._certificate),)
+            )
+            self.server.add_secure_port(f'[::]:{self._svc_port}', server_credentials)
+
         self.server.start()
 
         logging.info('start grpc server...')

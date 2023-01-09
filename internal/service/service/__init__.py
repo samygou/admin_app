@@ -3,8 +3,8 @@ from . import service
 
 __all__ = [
     'new_service',
-    'AdminService'
+    'AdminServicer'
 ]
 
 new_service = service.new_service
-AdminService = service.AdminService
+AdminServicer = service.AdminServicer
