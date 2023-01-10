@@ -9,10 +9,21 @@ from internal.service.service import new_service
 from internal.biz import new_account_use_case, new_company_use_case
 from internal.data import new_account_repo, new_company_repo
 from internal.data import orm
-from internal.modules.logx import Logger
+from internal.data import cache
+from internal.modules import logx
+from internal.modules import redisx
+from internal.modules import lockx
+from config import Config
 
 
 _ONE_DAY_IN_SECONDS = 60 * 60 * 24
+
+
+def _configure_logger():
+    logx.Logger(
+        pathlib.Path(os.path.join(os.path.dirname(__file__), 'logs')).as_posix(),
+        'admin_app.log'
+    ).init()
 
 
 def _register_server(svc_port: int):
@@ -52,6 +63,28 @@ def _register_server(svc_port: int):
         rpc.server.stop(0)
 
 
+def _init_redis():
+    conf = Config.REDIS()
+    redisx.redis = redisx.new_client(**conf.dict())
+
+
+def _init_cache():
+    cache.sess = cache.new_cache_session(redisx.redis)
+
+
+def _init_distributed_lock(pool: int = 10):
+    lockx.lock_pool = lockx.LockPool(pool)
+    for _ in range(pool):
+        lockx.lock_pool.put(lockx.Lock(redisx.Lock(client=redisx.redis)))
+
+
+def init_new_modules():
+    """modules init factory function"""
+    _init_redis()
+    _init_distributed_lock()
+    _init_cache()
+
+
 def main():
     """main func"""
     parse = argparse.ArgumentParser()
@@ -63,10 +96,7 @@ def main():
     args = parse.parse_args()
 
     # ============log=============
-    Logger(
-        pathlib.Path(os.path.join(os.path.dirname(__file__), 'logs')).as_posix(),
-        'admin_app.log'
-    ).init()
+    _configure_logger()
 
     # =============db=============
     orm.db = orm.new_database_handler(
@@ -78,6 +108,9 @@ def main():
 
     # ============grpc server================
     _register_server(args.svc_port)
+
+    # ============factory func===============
+    init_new_modules()
 
 
 if __name__ == '__main__':

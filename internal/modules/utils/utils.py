@@ -1,3 +1,8 @@
+import logging
+import traceback
+import typing as t
+from functools import wraps
+
 try:
     from synchronize import make_synchronized
 except ImportError:
@@ -22,3 +27,22 @@ class Singleton(object):
         if not hasattr(cls, "_instance"):
             cls._instance = object.__new__(cls)
         return cls._instance
+
+
+class NoException:
+    """不抛出异常"""
+    def __init__(self):
+        """"""
+
+    def __call__(self, func):
+        @wraps(func)
+        def wrappers(*args, **kwargs) -> t.Callable:
+            try:
+                return func(*args, **kwargs)
+            except Exception as e:
+                logging.error(e)
+                traceback.print_exc()
+
+            logging.info(f'func {func.__name__} do not raise Exception')
+
+        return wrappers
