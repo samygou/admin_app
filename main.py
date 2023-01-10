@@ -33,7 +33,10 @@ def _register_server(svc_port: int):
         svc_port,
         api_svc,
         workers=10,
-        options=[('grpc.max_receive_message_length', 30 * 1024 * 1024)],
+        options=[
+            ('grpc.max_send_message_length', 100 * 1024 * 1024),
+            ('grpc.max_receive_message_length', 100 * 1024 * 1024)
+        ],
         private_key=private_key,
         certificate=certificate
     )
