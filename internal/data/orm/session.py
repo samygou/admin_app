@@ -41,18 +41,16 @@ class DatabaseHandle(Singleton):
             charset=db_conf.charset,
         )
 
-        self._conn = self.__pool.connection()
+        self._conn = None
         self._cursor = None
 
     def open(self):
+        self._conn = self.__pool.connection()
         self._cursor = self._conn.cursor(cursor=pymysql.cursors.DictCursor)
         return self
 
-    def close_cursor(self):
-        self._cursor.close()
-
     def close(self):
-        self.close_cursor()
+        self._cursor.close()
         self._conn.close()
 
     def commit(self):
@@ -73,8 +71,8 @@ class DatabaseHandle(Singleton):
 
 class DBSession:
     """db content manager"""
-    def __init__(self, sess: DatabaseHandle):
-        self._sess = sess.open()
+    def __init__(self, db: DatabaseHandle):
+        self._sess = db.open()
 
     def __enter__(self):
         return self._sess
@@ -82,10 +80,11 @@ class DBSession:
     def __exit__(self, exc_type, exc_val, exc_tb):
         try:
             self._sess.commit()
-            self._sess.close_cursor()
         except Exception as e:
             logging.error(f'db session commit failed: {e}')
             self._sess.rollback()
+        finally:
+            self._sess.close()
 
 
 def new_database_handler(
@@ -115,6 +114,3 @@ def new_database_handler(
         conf.charset = charset
 
     return DatabaseHandle(conf)
-
-
-db: t.Optional[DatabaseHandle] = None

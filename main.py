@@ -43,7 +43,7 @@ def _register_server(svc_port: int):
 
     rpc.serve()
 
-    logging.info(f'grpc server register successful, port: {svc_port}')
+    logging.info(f'grpc server start successful, port: {svc_port}')
 
     try:
         while True:

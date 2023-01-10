@@ -1,3 +1,5 @@
+import typing as t
+
 from . import session
 
 
@@ -8,5 +10,6 @@ __all__ = [
 ]
 
 DBSession = session.DBSession
-db = session.db
+DatabaseHandle = session.DatabaseHandle
+db: t.Optional[DatabaseHandle] = None
 new_database_handler = session.new_database_handler

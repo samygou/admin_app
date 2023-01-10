@@ -5,8 +5,8 @@ import logging
 import grpc
 
 
-class ErrEndpointIsNullException(Exception):
-    """endpoint is null"""
+class ErrPortIsNullException(Exception):
+    """port is null"""
 
 
 class GRPCServer:
@@ -33,7 +33,11 @@ class GRPCServer:
         :param certificate: 证书, 为空使用非安全模式
         """
         self._svc_port = svc_port
-        self._options = options if options else [('grpc.max_receive_message_length', 30 * 1024 * 1024)]
+        self._options = options if options else \
+            [
+                ('grpc.max_send_message_length', 100 * 1024 * 1024),
+                ('grpc.max_receive_message_length', 100 * 1024 * 1024)
+            ]
         self._workers = workers
         self._api_svc = api_svc
         self.server = None
@@ -46,7 +50,7 @@ class GRPCServer:
         self._register_func(self._api_svc, self.server)
 
         if not self._svc_port:
-            raise ErrEndpointIsNullException
+            raise ErrPortIsNullException
 
         if not self._private_key or not self._certificate:
             logging.info('insecure mode')
